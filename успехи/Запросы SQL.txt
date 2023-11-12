@@ -9,3 +9,4 @@
 - Различные математические функции: https://www.postgresqltutorial.com/postgresql-math-functions/;
 - Арифметические операторы: https://www.postgresql.org/docs/9.3/functions-math.html;
 - CASE, WHEN, THEN и END: составление комплексных логических выражений.
+- AS: для переименования или создания имени нового столбца
