@@ -1,0 +1,491 @@
+import copy
+
+
+def get_raw_words(gpt_ans):
+    import re
+    alph = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alph += alph.lower()
+
+    def is_word_is_eng(word):
+        for symbol in word:
+            if symbol in alph:
+                return True
+        return False
+
+    gpt_ans_lines = re.split('/|\n', gpt_ans)
+    raw_wards = [[]]
+    chesk_new_word = False
+    new_word_symbols = ':,;.-()*'
+    for line in gpt_ans_lines:
+        # print(line)
+        line_split = line.split(' ')
+        # print(line_split)
+
+        for word in line_split:
+            # print(word)
+            if len(word) > 0 and not chesk_new_word:
+                chesk_new_word = '(' in word.strip()
+            if len(word) > 0 and word[0] not in alph:
+                chesk_new_word = True
+            if is_word_is_eng(word):
+                if chesk_new_word:
+                    raw_wards.append([word])
+                    chesk_new_word = False
+                else:
+                    raw_wards[-1].append(word)
+            if len(word) > 0 and not chesk_new_word:
+                chesk_new_word = word.strip()[-1] in new_word_symbols
+
+        chesk_new_word = True
+        # print('_' * 50)
+    # print(raw_wards)
+    return raw_wards
+
+
+def get_norm_word(word):
+    ans = ''
+    for i in word:
+        if i not in '*,()\"':
+            ans += i.lower()
+    if ans and ans[-1] in '.:':
+        return ans[:-1]
+    return ans
+
+
+def get_norm_list(array_raw_words):
+    array_ans = []
+    for word in array_raw_words:
+        ans = ''
+        # print(word, len(word))
+        for word_i in word:
+            ans += get_norm_word(word_i) + ' '
+        if len(ans) > 0:
+            array_ans.append(ans[:-1])
+    # print(array_ans)
+    return set(array_ans)
+
+
+def get_dict_komp():
+    d = dict()
+    flag = False
+    key_curr = None
+    with open('komp.txt', 'r', encoding='utf-8') as f:
+        all = f.readlines()
+        for i in all:
+            if not flag:
+                d[i.rstrip()] = {}
+                key_curr = i.rstrip()
+                flag = True
+                continue
+
+            if i == '\n' or i == '':
+                flag = False
+                continue
+
+            temp = i[:-1].split('	')
+            temp[-1] = temp[-1][:-1] if temp[-1][-1] == '.' else temp[-1]
+            add = []
+            for j in temp[1].split(','):
+                add.append(j.lower().strip())
+            # add += get_norm_list(get_raw_words(temp[0]))
+            d[key_curr][temp[0]] = add
+
+    return d
+
+
+def get_dict_komp_weight_clear(d):
+    t = copy.deepcopy(d)
+    for i in t:
+        for j in t[i]:
+            t[i][j] = 0
+        t[i]['weight'] = 0
+    return t
+
+
+def connection(a_from, d_to):
+    i_weight = 1
+    j_weight = 1
+    all_weight = 0
+    for header_komp in d_komp:
+        for komp in d_komp[header_komp]:
+            for tool in d_komp[header_komp][komp]:
+                if tool in a_from:
+                    d_to[header_komp][komp] += j_weight
+                    d_to[header_komp]['weight'] += i_weight
+                    all_weight += i_weight
+
+    if all_weight != 0:
+        for header_komp in d_to:
+            d_to[header_komp]['weight'] /= all_weight
+
+
+text_proff = """
+1. Языки программирования: Знание языков программирования, таких как JavaScript, Python, Ruby, PHP или Java.
+ 2. HTML/CSS: Понимание структуры веб-страниц и стилей с использованием HTML и CSS.
+ 3. Фреймворки и библиотеки: Знание популярных фреймворков и библиотек, таких как React, Angular, Vue.js для JavaScript, или Django и Flask для Python.
+ 4. Базы данных: Понимание работы с базами данных, включая SQL и NoSQL базы данных.
+ 5. Протоколы HTTP и HTTPS: Понимание протоколов передачи данных в интернете.
+ 6. Безопасность веб-приложений: Знание основ безопасности веб-приложений, включая защиту от основных видов атак.
+ 
+ 1. Разработка веб-приложений: Умение создавать функциональные и эффективные веб-приложения.
+ 2. Отладка и тестирование: Умение отлаживать код и проводить тестирование для обеспечения качества программного обеспечения.
+ 3. Работа в команде: Умение работать в команде и эффективно общаться с коллегами.
+ 4. Управление проектами: Знание методологий управления проектами, таких как Agile или Scrum.
+ 5. Непрерывное обучение: Готовность к непрерывному обучению и развитию своих навыков, поскольку технологии в области веб-разработки постоянно развиваются.
+"""
+# kurs_text = """
+# Angular
+# React
+# Vue.js
+# Svelte
+# Next.js
+# Nuxt.js
+# RxJS
+# Angular
+# IIS
+# """
+
+kurs_d = {
+    'Программирование на PHP':
+        """
+        "1. Основы web-программирования
+    2. Принципы работы web-приложений
+    3. Тонкие и толстые клиенты
+    4. Способы передачи данных
+    5. REST API
+    6. Основы языка PHP
+    7. Элементы функционального программирования на PHP
+    8. Основы сетевой передачи данных
+    9. Принципы клиент-серверной и трехзвенной архитектуры
+    10. Типы данных, динамическая типизация, структуры, массивы, циклы и основные функции в PHP
+    11. Принципы процедурного программирования
+    12. Объектно-ориентированное программирование в PHP"
+    
+        """,
+
+    'JavaScript. Разработка веб-интерфейсов (HTML-академия)':
+        """
+        "1. Особенности языка JavaScript.
+    2. Синтаксис JavaScript.
+    3. Принципы объектно-ориентированного программирования (ООП) в JavaScript.
+    4. Основные конструкции языка JavaScript.
+    5. Прикладные задачи фронтенд-разработчика."
+    
+        """,
+
+    'Базы данных (традиционный курс)':
+        """
+        "1. Теория баз данных
+    2. Модели и методы работы со структурированными данными
+    3. Методика проектирования баз данных
+    4. Средства стандарта SQL\\92 и SQL"
+    
+        """,
+    'Программирование на Java (смешанный курс)':
+        """
+        1. Основы языка программирования Java.
+    2. Система типов и объектно-ориентированное программирование (ООП).
+    3. Владение важными классами стандартной библиотеки Java.
+    4. Работа с системой контроля версий Git.
+    5. Обработка ошибок и исключений.
+    6. Работа с массивами, коллекциями и обобщениями.
+    7. Многопоточность, функциональные интерфейсы и Stream API.
+    8. Основы тестирования в Java
+    Appium, Playwright
+    
+        """,
+
+    'Разработка веб сервиса на Java (часть 1 и часть 2). (Онлайн, Stepic, ОК)':
+        """
+    "Java
+    ООП 
+    Appium
+    Playwright
+    Symphony
+    Spring
+    JavaEE
+    Spring Framework
+    Apache Struts
+    Play Framework
+    Hibernate"
+    
+        """,
+
+    'Программирование на TypeScript (смешанный курс, SkillBox)':
+        """
+        "TypeScript
+    JavaScript
+    Веб Разработка
+    Фронтенд
+    Angular
+    React.js"
+    
+        """,
+
+    'Программирование сложных приложений на Python (SkillBox, Смешанный курс)':
+        """
+        "Python
+    SQLAlchemy
+    PyMySQL
+    RESTAPI
+    Pandas
+    Nunpy
+    Matplotlib
+    Seaborn
+    Caffe"
+    
+        """,
+
+    'JavaScript углублённый курс (SkillBox, смешанный)':
+        """
+        "JavaScript
+    React
+    Angular
+    Vue.js
+    Ember.js
+    Backbone.js
+    Svelte
+    Aurelia
+    Preact."
+    
+        """,
+
+    'Разработка web-приложений на готовых платформах (CMS)':
+        """
+        "Веб Разработка
+    CMS
+    Фреймворки
+    SAAS
+    PAAS
+    IAAS
+    PHP
+    JavaScript
+    Базы Данных
+    MySQL
+    MongoDB
+    HTML
+    CSS
+    Yii
+    Symphony
+    Wordpress
+    Joomla
+    Drupal
+    Bitrix
+    Tilda
+    Бэкенд"
+    
+        """,
+
+    'Базы данных':
+        """
+    "PostgreSQL
+    MySQL
+    Microsoft SQL Server
+    Oracle Database
+    MongoDB
+    Нормализация
+    Денормализация
+    ER-модель
+    БД первой нормальной формы
+    БД второй нормальной формы
+    БД третьей нормальной формы"
+    
+        """,
+
+    'Fullstack-разработка на Next.JS':
+        """
+        "Next.js
+    React
+    HTML
+    CSS
+    JavaScript
+    "
+    
+        """,
+
+    'Курс проектной разработки (УЦСБ)':
+        """
+        "Xamarin
+    MAUI
+    C
+    React
+    TypeScript
+    UX
+    UI
+    MVP"
+    
+        """
+
+}
+
+kurs_mark = dict()
+
+kurs_texts = [
+
+    """
+    "1. Основы машинного обучения (МО).
+    2. Понимание основных задач МО (обучение с учителем, обучение без учителя, обучение с подкреплением).
+    3. Классификация моделей и методов МО.
+    4. Основы языка программирования Python.
+    5. Использование библиотек для обработки и визуализации данных (Numpy, pandas, Pyplot).
+    6. Задача уменьшения размерности и метод главных компонент.
+    7. Задача регрессии, включая линейную и многомерную линейную регрессию, полиномиальную регрессию.
+    8. Задача классификации с использованием различных методов (Наивный Байесовский классификатор, метод k ближайших соседей, логистическая регрессия, метод опорных векторов, деревья принятия решений).
+    9. Задача кластеризации с применением методов К-средних, иерархической кластеризации и дендрограмм, ансамблевых методов (бэггинг, бустинг).
+    10. Обучение с подкреплением и алгоритм Q-Learning."
+    
+    """,
+
+    """
+"1. Язык программирования Python.
+2. Принципы разработки сложных приложений на Python.
+3. Основы многозадачности в программировании.
+4. Принципы архитектуры программного обеспечения.
+5. Взаимодействие с базами данных в контексте Python.
+6. Работа с REST API."
+
+
+
+    """,
+
+    """
+    "1. Основы TypeScript с нуля.
+2. Использование TypeScript в веб-приложениях.
+3. Максимальное использование типизации.
+4. Расширенное использование JavaScript.
+5. Проектирование архитектуры веб-приложений на основе TypeScript.
+6. Знание основ языка TypeScript как основного для Angular.
+7. Использование TypeScript при разработке компонентов в React.js.
+"
+
+    """,
+
+    """
+"1. Глубокое понимание языка программирования PHP.
+2. Принципы объектно-ориентированного программирования (ООП).
+3. Знание современных технологий и подходов в web-программировании.
+4. Понимание синтаксиса языка PHP.
+5. Знакомство с экосистемами различных CMS и фреймворков, особенно с уклоном на Laravel.
+"
+
+    """,
+
+    """
+    "1. Основы синтаксиса и семантики языка программирования Java.
+2. Понимание выразительных возможностей системы типов в Java.
+3. Базовые принципы объектно-ориентированных языков программирования.
+4. Реализация базовых принципов объектно-ориентированного программирования (ООП) на примере Java.
+5. Паттерны программирования на Java.
+6. Знание не-объектно-ориентированных средств языка Java, таких как обобщенные типы и лямбда-выражения.
+7. Понимание инструментальных вопросов программирования на Java, включая JUnit, Maven, Git, SonarQube.
+"
+
+    """,
+
+    """
+    "1. Работа клиент-серверных технологий.
+2. Виртуализация и создание серверного окружения.
+3. Серверные технологии размещения и распространения ПО: SAAS, PAAS, IAAS. Облачные технологии.
+4. Языки программирования (PHP, JavaScript) и другие клиент-серверные технологии.
+5. СУБД (MySQL, MongoDB) и языки разметки и описания (HTML, CSS).
+6. Фреймворки (Yii, Symphony).
+7. CMS-системы (WordPress, Joomla, Drupal, Bitrix).
+8. Онлайн-конструкторы (WordPress, Tilda).
+"
+
+    """,
+
+    """
+    "1. Работа с языком программирования Python.
+2. Основы клиент-серверных технологий в веб-приложениях.
+3. Настройка и использование фреймворка Django.
+4. Механизмы шаблонизации в Django.
+5. Работа с маршрутизацией в Django.
+6. Основы баз данных, особенно в контексте веб-разработки."
+
+    """,
+
+    """
+"1) Фреймворк Next.js
+2) Основы HTML
+3) Основы CSS
+4) Основы JavaScript
+5) Адаптивная вёрстка
+6) Взаимодействие с базами данных
+7) Развёртывание веб-сервисов"
+
+
+    """
+
+]
+
+for kurs_key in kurs_d:
+    kurs_text = kurs_d[kurs_key]
+    array_proff = get_norm_list(get_raw_words(text_proff))
+    array_kurs = get_norm_list(get_raw_words(kurs_text))
+    d_komp = get_dict_komp()
+    weight_prof = get_dict_komp_weight_clear(d_komp)
+    weight_kurs = get_dict_komp_weight_clear(d_komp)
+    ans_weight = get_dict_komp_weight_clear(d_komp)
+    connection(array_proff, weight_prof)
+    connection(array_kurs, weight_kurs)
+    # for i in weight_prof:
+    #     print(i)
+    #     for j in weight_prof[i]:
+    #         if weight_prof[i][j] != 0:
+    #             print(j, weight_prof[i][j])
+    #     print()
+
+    print('_' * 50)
+    print(kurs_key)
+    for i in weight_kurs:
+        print(i)
+        for j in weight_kurs[i]:
+            if weight_kurs[i][j] != 0:
+                print(j, weight_kurs[i][j])
+        print()
+
+    print('_' * 50)
+
+    Plus = 0
+    k_del = 5
+    Loss = 0
+    for header_komp in weight_prof:
+        k_dot = weight_prof[header_komp]['weight']
+        t = (weight_kurs[header_komp]['weight'] - weight_prof[header_komp]['weight']) * (1 - k_dot)
+        if t > 0:
+            if k_dot > 0.2:
+                Loss += t / k_del
+            else:
+                Loss += t
+        else:
+            Loss += abs(t)
+        for komp in weight_prof[header_komp]:
+            if komp == 'weight':
+                continue
+            if weight_prof[header_komp][komp] >= weight_kurs[header_komp][komp]:
+                Plus += weight_kurs[header_komp][komp] * k_dot
+            else:
+                Plus += weight_prof[header_komp][komp] * k_dot
+
+    answer = [Plus, -Loss]
+    kurs_mark[kurs_key] = answer
+    print(answer)
+    print()
+    print('*' * 50)
+    print()
+
+# print(kurs_mark)
+ans = []
+
+for i in kurs_mark:
+    ans.append([i, kurs_mark[i]])
+
+ans.sort(key=lambda x: x[-1], reverse=True)
+
+print('Для Web-разработчик:')
+print(f'№: Курс | [Plus, -Loss]')
+for i, j in enumerate(ans):
+    for t in range(2):
+        j[1][t] = round(j[1][t], 2)
+    print(f'{i + 1}: {j[0]} | {j[1]}')
